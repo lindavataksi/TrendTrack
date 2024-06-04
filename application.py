@@ -1,8 +1,6 @@
 import os
 
-from sqlalchemy import create_engine, select
-from sqlalchemy import Table, Column, MetaData
-from sqlalchemy.sql import text
+from cs50 import SQL
 from flask import Flask, flash, jsonify, redirect, render_template, request, session
 from flask_session import Session
 from tempfile import mkdtemp
@@ -18,15 +16,12 @@ app = Flask(__name__)
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Ensure responses aren't cached
-
-
 @app.after_request
 def after_request(response):
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Expires"] = 0
     response.headers["Pragma"] = "no-cache"
     return response
-
 
 # Custom filter
 app.jinja_env.filters["usd"] = usd
@@ -38,12 +33,10 @@ app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
 # Configure CS50 Library to use SQLite database
-db = 'sqlite:///finance.db'
+db = SQL("sqlite:///finance.db")
 
-# set api key from IEX for flask data
-api_key = os.getenv('IEX_API_KEY')
 # Make sure API key is set
-if not api_key:
+if not os.getenv('IEX_API_KEY'):
     raise RuntimeError("API_KEY not set")
 
 
@@ -86,18 +79,9 @@ def login():
         elif not request.form.get("password"):
             return apology("must provide password", 403)
 
-        # rows = db.execute("SELECT * FROM users WHERE username = :username",
-        #                          username=request.form.get("username"))
-        # Add the below code to query the database
-        engine = create_engine(db)
-        meta = MetaData()
-        conn = engine.connect()
-        users = Table('users', meta, autoload=True, autoload_with=engine)
-        s = select([users]).where(users.c.username ==
-                                  request.form.get("username"))
-        rows = conn.execute(s).fetchall()
-        conn.close()
-        engine.dispose()
+        # Query database for username
+        rows = db.execute("SELECT * FROM users WHERE username = :username",
+                          username=request.form.get("username"))
 
         # Ensure username exists and password is correct
         if len(rows) != 1 or not check_password_hash(rows[0]["hash"], request.form.get("password")):
@@ -134,9 +118,33 @@ def quote():
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
-    """Register user"""
-    return apology("TODO")
-
+    if request.method == "GET":
+        return render_template("register.html")
+    elif request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        passwordconfirmation = request.form.get("confirmation")
+        existing_user = db.execute("SELECT * FROM users WHERE username = ?", username)
+        if not username:
+            return apology("Username is required", 400)
+        elif len(existing_user) != 0:
+            return apology("User already exists", 400)
+        elif not password:
+            return apology("Enter a password", 400)
+        elif not passwordconfirmation:
+            return apology("Enter a password confirmation", 400)
+        elif password != passwordconfirmation:
+            return apology("Passwords do not match", 400)
+        else:
+            # Generate the hash of the password
+            hash = generate_password_hash(
+                password, method="pbkdf2:sha256", salt_length=8
+            )
+            db.execute("INSERT INTO users (username, hash) VALUES(?, ?)", username, hash)
+            flash("Registered!")
+            return redirect("/")
+    else:
+        return render_template("register.html")
 
 @app.route("/sell", methods=["GET", "POST"])
 @login_required
