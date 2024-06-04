@@ -1,6 +1,8 @@
 import os
 
-from cs50 import SQL
+from sqlalchemy import create_engine, select
+from sqlalchemy import Table, Column, MetaData
+from sqlalchemy.sql import text
 from flask import Flask, flash, jsonify, redirect, render_template, request, session
 from flask_session import Session
 from tempfile import mkdtemp
@@ -16,12 +18,15 @@ app = Flask(__name__)
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Ensure responses aren't cached
+
+
 @app.after_request
 def after_request(response):
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Expires"] = 0
     response.headers["Pragma"] = "no-cache"
     return response
+
 
 # Custom filter
 app.jinja_env.filters["usd"] = usd
@@ -33,10 +38,12 @@ app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
 # Configure CS50 Library to use SQLite database
-db = SQL("sqlite:///finance.db")
+db = 'sqlite:///finance.db'
 
+# set api key from IEX for flask data
+api_key = os.getenv('IEX_API_KEY')
 # Make sure API key is set
-if not os.environ.get("API_KEY"):
+if not api_key:
     raise RuntimeError("API_KEY not set")
 
 
@@ -79,9 +86,18 @@ def login():
         elif not request.form.get("password"):
             return apology("must provide password", 403)
 
-        # Query database for username
-        rows = db.execute("SELECT * FROM users WHERE username = :username",
-                          username=request.form.get("username"))
+        # rows = db.execute("SELECT * FROM users WHERE username = :username",
+        #                          username=request.form.get("username"))
+        # Add the below code to query the database
+        engine = create_engine(db)
+        meta = MetaData()
+        conn = engine.connect()
+        users = Table('users', meta, autoload=True, autoload_with=engine)
+        s = select([users]).where(users.c.username ==
+                                  request.form.get("username"))
+        rows = conn.execute(s).fetchall()
+        conn.close()
+        engine.dispose()
 
         # Ensure username exists and password is correct
         if len(rows) != 1 or not check_password_hash(rows[0]["hash"], request.form.get("password")):
@@ -139,3 +155,6 @@ def errorhandler(e):
 # Listen for errors
 for code in default_exceptions:
     app.errorhandler(code)(errorhandler)
+
+if __name__ == "__main__":
+    app.run(debug=True)
