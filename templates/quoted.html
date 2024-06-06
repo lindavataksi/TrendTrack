@@ -1,0 +1,10 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Quoted
+{% endblock %}
+
+{% block main %}
+    <h4 class="rounded-box"> A share of {{ name }} ({{ symbol }} ) costs {{ price | usd}}</h4>
+{% endblock %}
+

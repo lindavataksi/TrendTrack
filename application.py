@@ -112,8 +112,19 @@ def logout():
 @app.route("/quote", methods=["GET", "POST"])
 @login_required
 def quote():
-    """Get stock quote."""
-    return apology("TODO")
+    if request.method == "GET":
+        return render_template("quote.html")
+    elif request.method == "POST":
+        symbol = request.form.get("symbol")
+        quote = lookup(symbol)
+        # existing_user = db.execute("SELECT * FROM users WHERE username = ?", username)
+        if quote is None:
+            return apology("Symbol not found", 400)
+        else:
+            flash("Quoted!")
+            return render_template("quoted.html", name=quote["name"], price=quote["price"], symbol=quote["symbol"])
+    else:
+        return redirect("/")
 
 
 @app.route("/register", methods=["GET", "POST"])
