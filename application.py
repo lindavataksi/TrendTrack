@@ -42,8 +42,15 @@ db = SQL("sqlite:///finance.db")
 @app.route("/")
 @login_required
 def index():
-    """Show portfolio of stocks"""
-    return apology("TODO")
+    users = db.execute("SELECT * FROM users WHERE id = ?", session["user_id"])
+    bank = users[0]["cash"]
+    transactions = db.execute("SELECT * FROM transactions WHERE user_id = ?;", session["user_id"])
+
+    transactions = [dict(x, **{'price': lookup(x['symbol'])['price']}) for x in transactions]
+    transactions = [dict(x, **{'total': x['price']*x['shares']}) for x in transactions]
+
+    total = bank + sum([x['total'] for x in transactions])
+    return render_template("index.html", bank=bank, transactions=transactions, total=total)
 
 
 @app.route("/buy", methods=["GET", "POST"])
