@@ -1,13 +1,14 @@
 import os
 
+from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for 
 from cs50 import SQL
-from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
 from flask_session import Session
 from tempfile import mkdtemp
 from werkzeug.exceptions import default_exceptions, HTTPException, InternalServerError
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from helpers import apology, login_required, lookup, usd
+import datetime
 
 # Configure application
 app = Flask(__name__)
@@ -32,12 +33,8 @@ app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
-# Configure CS50 Library to use SQLite database
+# Configure to use SQLite database
 db = SQL("sqlite:///finance.db")
-
-# Make sure API key is set
-# if not os.getenv('IEX_API_KEY'):
-#     raise RuntimeError("API_KEY not set")
 
 @app.route("/")
 @login_required
@@ -52,12 +49,48 @@ def index():
     total = bank + sum([x['total'] for x in transactions])
     return render_template("index.html", bank=bank, transactions=transactions, total=total)
 
-
 @app.route("/buy", methods=["GET", "POST"])
 @login_required
 def buy():
-    """Buy shares of stock"""
-    return apology("TODO")
+    if request.method == "GET":
+        return render_template("buy.html")
+    elif request.method == "POST":
+        symbol = request.form.get("symbol")
+        share = request.form.get("shares")
+
+        if not share:
+            return apology("Invalid shares input", 400)
+
+        try:
+            share = int(share)
+        except ValueError:
+            return apology("Invalid shares input", 400)
+
+        quote = lookup(symbol)
+
+        if quote is None:
+            return apology("Symbol not found", 400)
+        elif share <= 0:
+            return apology("Enter a positive number", 400)
+
+        result = db.execute("SELECT * FROM users WHERE id = ?;", session["user_id"])
+        user_cash = result[0]["cash"]
+
+        total_cost = share * quote["price"]
+
+        user_id = session["user_id"]
+        date = datetime.datetime.now()
+
+        db.execute("INSERT INTO transactions (user_id, symbol, company, shares, price, total, date) VALUES (?, ?, ?, ?, ?, ?, ?);",
+           user_id, symbol, quote["name"], share, quote["price"], (share * quote["price"]), date )
+
+        if user_cash < total_cost:
+            return apology("Insufficient funds", 400)
+        else:
+            db.execute("UPDATE users SET cash = ? WHERE id = ?;",
+                (user_cash - total_cost), session["user_id"])
+            flash("Bought!")
+        return redirect("/")
 
 
 @app.route("/history")
@@ -133,29 +166,6 @@ def quote():
     else:
         return redirect("/")
 
-
-# @app.route("/quote", methods=["GET", "POST"])
-# @login_required
-# def quote():
-#     if request.method == "GET":
-#         return render_template("quote.html")
-#     elif request.method == "POST":
-#         symbol = request.form.get("symbol")
-#         print("SYMBOL TEST", symbol)
-#         quote = lookup(symbol)
-#         print("QUOTE TEST", quote)
-#         if quote is None:
-#             # return apology("Symbol not found", 400)
-#             # Handle case when quote is None
-#             flash("Invalid symbol or no data found for the symbol", "error")
-#             return redirect(url_for("quote")) 
-#         else:
-#             flash("Quoted!")
-#             return render_template("quoted.html", name=quote["name"], price=quote["price"], symbol=quote["symbol"])
-#     else:
-#         return redirect("/")
-
-
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "GET":
@@ -189,8 +199,45 @@ def register():
 @app.route("/sell", methods=["GET", "POST"])
 @login_required
 def sell():
-    """Sell shares of stock"""
-    return apology("TODO")
+    stock = db.execute("""SELECT symbol, sum(shares) as sum_of_shares
+                                  FROM transactions
+                                  WHERE user_id = ?
+                                  GROUP BY user_id, symbol
+                                  HAVING sum_of_shares > 0;""", session["user_id"])
+
+    if request.method == "POST":
+        symbol = request.form.get("symbol")
+        share = int(request.form.get("shares"))
+        if not share:
+            return apology("Invalid shares input", 400)
+        try:
+            share = int(share)
+        except ValueError:
+            return apology("Invalid shares input", 400)
+
+        quote = lookup(symbol)
+        if quote is None:
+            return apology("Symbol not found", 400)
+        price = quote["price"]
+        sale = share * price
+        rows = db.execute("SELECT cash FROM users WHERE id = :id", id = session["user_id"])
+        usercash = sale + (rows[0]["cash"])
+
+        if share > int(stock[0]["sum_of_shares"]):
+            return apology("Cannot afford", 400)
+
+        user_id = session["user_id"]
+        date = datetime.datetime.now()
+
+        db.execute("UPDATE users SET cash = ? WHERE id = ?;",(usercash), session["user_id"])
+
+        db.execute("INSERT INTO transactions (user_id, symbol, company, shares, price, total, date) VALUES (?, ?, ?, ?, ?, ?, ?);",
+            user_id, symbol, quote["name"], -share, quote["price"], (share * quote["price"]), date )
+
+        flash("Sold!")
+        return redirect("/")
+    else:
+        return render_template("sell.html", stock=stock)
 
 
 def errorhandler(e):
