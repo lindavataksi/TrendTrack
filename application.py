@@ -6,6 +6,7 @@ from flask_session import Session
 from tempfile import mkdtemp
 from werkzeug.exceptions import default_exceptions, HTTPException, InternalServerError
 from werkzeug.security import check_password_hash, generate_password_hash
+from model import predict_stock_price
 
 from helpers import apology, login_required, lookup, usd
 import datetime
@@ -238,7 +239,38 @@ def sell():
         return redirect("/")
     else:
         return render_template("sell.html", stock=stock)
+    
+@app.route("/predict", methods=['POST', 'GET'])
+@login_required
+def predict():
+    user_stock = db.execute("""SELECT symbol, sum(shares) as sum_of_shares
+                                  FROM transactions
+                                  WHERE user_id = ?
+                                  GROUP BY user_id, symbol
+                                  HAVING sum_of_shares > 0;""", session["user_id"])
+    if request.method == 'POST':
+        ticker = request.form['Ticker']
+        current_price, future_price, accuracy_percentage = predict_stock_price(ticker)
+        
+        # Check if the ticker exists in user_stock symbols
+        ticker_in_user_stock = any(ticker == stock['symbol'] for stock in user_stock)
+            
+        if ticker_in_user_stock:
+            prediction_text = (
+                f"You already own this - The current price of {ticker} is ${current_price} "
+                f"and the predicted price after 1 year is ${future_price}."
+            )
+        else:
+            prediction_text = (
+                f"The current price of {ticker} is ${current_price} "
+                f"and the predicted price after 1 year is ${future_price}."
+            )
+        
+        accuracy = f"Accuracy : {accuracy_percentage}%"
+    
+        return render_template('predict.html', prediction_text=prediction_text, accuracy=accuracy)
 
+    return render_template('predict.html')
 
 def errorhandler(e):
     """Handle error"""
@@ -247,7 +279,7 @@ def errorhandler(e):
     return apology(e.name, e.code)
 
 
-# Listen for errors
+#errors check
 for code in default_exceptions:
     app.errorhandler(code)(errorhandler)
 
