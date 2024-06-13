@@ -1,10 +1,10 @@
 import os
 import requests
 import urllib.parse
+import yfinance as yf
 
 from flask import redirect, render_template, request, session
 from functools import wraps
-
 
 def apology(message, code=400):
     """Render message as an apology to user."""
@@ -34,27 +34,51 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-
-def lookup(symbol):
-    """Look up quote for symbol."""
-
-    # Contact API
+def get_stock_price(symbol):
     try:
-        api_key = os.environ.get("API_KEY")
-        response = requests.get(f"https://cloud-sse.iexapis.com/stable/stock/{urllib.parse.quote_plus(symbol)}/quote?token={api_key}")
-        response.raise_for_status()
-    except requests.RequestException:
+        # Fetch historical data for the symbol
+        ticker = yf.Ticker(symbol)
+        data = ticker.history(period="max")  # Adjust period as needed
+        
+        if data.empty:
+            print(f"No historical data found for symbol: {symbol}")
+            return None
+        
+        # Get the last closing price
+        price = data['Close'].iloc[-1]
+
+        return price  # Return the actual price value
+        
+    except Exception as e:
+        print(f"Error fetching data for symbol {symbol}: {e}")
         return None
 
-    # Parse response
+
+def lookup(symbol):
     try:
-        quote = response.json()
-        return {
-            "name": quote["companyName"],
-            "price": float(quote["latestPrice"]),
-            "symbol": quote["symbol"]
-        }
-    except (KeyError, TypeError, ValueError):
+        ticker = yf.Ticker(symbol)
+        info = ticker.info
+        if not info:
+            print(f"No information found for symbol: {symbol}")
+            return None
+        
+        print(f"Available keys in info: {list(info.keys())}")
+        
+        market_price = get_stock_price(symbol)
+        print(f"Market price for {symbol}: {market_price}")
+        
+        if market_price is not None:
+            return {
+                "name": info.get("shortName", info.get("longName", "N/A")),
+                "price": float(market_price),  # Ensure market_price is numeric
+                "symbol": info["symbol"]
+            }
+        else:
+            print(f"No market price found for symbol: {symbol}")
+            return None
+        
+    except Exception as e:
+        print(f"Error looking up symbol {symbol}: {e}")
         return None
 
 

@@ -1,7 +1,7 @@
 import os
 
 from cs50 import SQL
-from flask import Flask, flash, jsonify, redirect, render_template, request, session
+from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
 from flask_session import Session
 from tempfile import mkdtemp
 from werkzeug.exceptions import default_exceptions, HTTPException, InternalServerError
@@ -36,9 +36,8 @@ Session(app)
 db = SQL("sqlite:///finance.db")
 
 # Make sure API key is set
-if not os.getenv('IEX_API_KEY'):
-    raise RuntimeError("API_KEY not set")
-
+# if not os.getenv('IEX_API_KEY'):
+#     raise RuntimeError("API_KEY not set")
 
 @app.route("/")
 @login_required
@@ -108,7 +107,6 @@ def logout():
     # Redirect user to login form
     return redirect("/")
 
-
 @app.route("/quote", methods=["GET", "POST"])
 @login_required
 def quote():
@@ -116,15 +114,39 @@ def quote():
         return render_template("quote.html")
     elif request.method == "POST":
         symbol = request.form.get("symbol")
+        print("SYMBOL TEST", symbol)
         quote = lookup(symbol)
-        # existing_user = db.execute("SELECT * FROM users WHERE username = ?", username)
+        print("QUOTE TEST", quote)
         if quote is None:
-            return apology("Symbol not found", 400)
+            flash("Invalid symbol or no data found for the symbol", "error")
+            return redirect(url_for("quote"))
         else:
             flash("Quoted!")
             return render_template("quoted.html", name=quote["name"], price=quote["price"], symbol=quote["symbol"])
     else:
         return redirect("/")
+
+
+# @app.route("/quote", methods=["GET", "POST"])
+# @login_required
+# def quote():
+#     if request.method == "GET":
+#         return render_template("quote.html")
+#     elif request.method == "POST":
+#         symbol = request.form.get("symbol")
+#         print("SYMBOL TEST", symbol)
+#         quote = lookup(symbol)
+#         print("QUOTE TEST", quote)
+#         if quote is None:
+#             # return apology("Symbol not found", 400)
+#             # Handle case when quote is None
+#             flash("Invalid symbol or no data found for the symbol", "error")
+#             return redirect(url_for("quote")) 
+#         else:
+#             flash("Quoted!")
+#             return render_template("quoted.html", name=quote["name"], price=quote["price"], symbol=quote["symbol"])
+#     else:
+#         return redirect("/")
 
 
 @app.route("/register", methods=["GET", "POST"])
