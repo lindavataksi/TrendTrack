@@ -45,3 +45,120 @@ main img
     /* constrain images on small screens */
     max-width: 100%;
 }
+
+.icon {
+    width: 25px;
+    height: 25px;
+}
+
+.inline-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.inline-container ion-icon, 
+.inline-container span {
+    margin: 0 5px;
+}
+.inline-container h3 {
+    margin: 0;
+}
+
+
+.chat {
+    width: 800px;
+    display: flex;
+    justify-content: left;
+    padding: 10px;
+  }
+  
+  .messages {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .message {
+    border-radius: 20px;
+    padding: 8px 15px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    display: inline-block;
+  }
+
+  .mine {
+    align-items: flex-end;
+  }
+  
+  .mine .message {
+    color: white;
+    margin-right: 25%;
+    background: linear-gradient(to bottom, #00D0EA 0%, #0085D1 100%);
+    background-attachment: fixed;
+    position: relative;
+  }
+   
+  .mine .message.last:before {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    bottom: 0;
+    left: -8px;
+    height: 20px;
+    width: 20px;
+    background: linear-gradient(to bottom, #00D0EA 0%, #0085D1 100%);
+    background-attachment: fixed;
+    border-bottom-right-radius: 15px;
+    }
+
+.mine .message.last:after {
+    content: "";
+    position: absolute;
+    z-index: 1;
+    bottom: 0;
+    left: -10px;
+    width: 10px;
+    height: 20px;
+    background: white;
+    border-bottom-right-radius: 10px;
+}
+
+.message-box{
+    width: 440px;
+    border-radius: 6px;
+    margin: 20px auto;
+    padding: auto 0;
+    position: relative;
+    i{
+      vertical-align: middle;
+      padding: 20px;
+      &.exit-button{
+        float: right;
+        opacity: .4;
+        &:hover{
+          opacity: .8;
+        }
+      }
+    }
+  }
+  .message-text{
+    vertical-align: middle;
+  }
+.message-box-warn{
+    background-color: #F8F4D5;
+    border:  darken(#F8F4D5, 20%) 2px solid;
+    color: #96722E;
+  }
+
+  .blurb_text {
+    padding: 10px;
+  }
+
+  .prediction_text {
+    font-weight: bold;
+  }
+
+  .advice_text {
+    font-style: italic;
+  }

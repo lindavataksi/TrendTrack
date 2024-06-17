@@ -1,22 +1,50 @@
-{% extends "layout.html" %}
-
-{% block title %}
-    Predict
-{% endblock %}
-
-{% block main %}
+{% extends "layout.html" %} {% block title %} Predict {% endblock %} {% block
+main %}
 <body>
-    <div class="mb-3">
-      <h1>Stock Price Predictor</h1>
-      <form action="{{url_for('predict')}}" method ="POST">
-        
-        <input type="text" name="Ticker" placeholder="Enter Stock Symbol" class="form-control mx-auto w-auto">
-
-        <button class="btn btn-primary" type="submit">Predict Stock Price</button>
-        
-      </form>
-      <p>{{ prediction_text }}</p>
-      <p>{{ accuracy }}</p>
+  <div class="mb-3">
+    <div class = "inline-container">
+      <ion-icon name="trending-down"></ion-icon>
+        <span><h3>Stock Price Predictor</h3></span>
+        <ion-icon name="trending-up"></ion-icon>
     </div>
-  </body>
+
+    <div class="chat">
+      <div class="mine messages">
+        <div class="message last">
+          <p>
+            Introducing our cutting-edge Stock Predictor feature – your essential tool
+            for making informed investment decisions. With just a simple input of any
+            stock ticker, you can instantly see an estimated price projection for that
+            stock one year into the future.
+          </p>
+         </div>
+      </div>
+
+    </div>
+
+    <form action="{{url_for('predict')}}" method="POST">
+      <input
+        type="text"
+        name="Ticker"
+        placeholder="Enter Stock Symbol"
+        class="form-control mx-auto w-auto"
+      />
+
+      <button class="btn btn-primary" type="submit">Predict Stock Price</button>
+    </form>
+    <div class = "blurb_text">
+      <p class = "prediction_text">{{ prediction_text }}</p>
+      <p class = "advice_text">{{ advice }}</p>
+    </div>
+
+    {% if accuracy %}
+    <div class="message-box message-box-warn">
+      <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
+        <span class="message-text"><strong>Warning:</strong> {{ accuracy }}</span>
+        <i class="fa fa-times fa-2x exit-button"></i>
+    </div>
+    {% endif %}
+
+  </div>
+</body>
 {% endblock %}
