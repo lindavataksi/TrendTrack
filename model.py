@@ -5,7 +5,7 @@ import yfinance as yf
 
 def predict_stock_price(ticker):
     # Fetch historical data for the specified ticker
-    data = yf.download(ticker, start="2010-01-01", end="2023-01-01")
+    data = yf.download(ticker, start="2010-01-01", end="2024-06-01")
     data.reset_index(inplace=True)
     data = data[['Date', 'Close']]
     data['Date'] = pd.to_datetime(data['Date'])

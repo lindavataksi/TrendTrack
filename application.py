@@ -111,12 +111,6 @@ def history():
     return render_template("history.html", transactions=transactions)
 
 
-@app.route("/profile")
-@login_required
-def profile():
-    return render_template("profile.html")
-
-
 @app.route("/login", methods=["GET", "POST"])
 def login():
     """Log user in"""
@@ -301,6 +295,7 @@ def predict():
         if accuracy_percentage < 50:
             accuracy = " This is a volatile stock. Be cautious when considering this prediction."
 
+        flash("Predicted!")
         return render_template('predict.html', prediction_text=prediction_text, accuracy=accuracy, advice=advice)
 
     return render_template('predict.html')

@@ -162,3 +162,7 @@ main img
   .advice_text {
     font-style: italic;
   }
+
+  .apology-photo{
+    width: 400px;
+  }
